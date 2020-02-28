@@ -1,0 +1,592 @@
+import { Wallet } from 'ethers';
+import { getProvider } from './signer';
+
+export const getCurrentBlock = async () => {
+  const provider = getProvider();
+  const block = await provider.getBlock();
+  return block.number;
+};
+
+/**
+ * @description Generates a brain wallet from a username/password pair
+ * @param username [String]
+ * @param password [String]
+ * @returns [Object] - Ethers.js wallet object
+ */
+export const generateBrainWalletPrivateKey = async (username, password) => {
+  let wallet = await Wallet.fromBrainWallet(username, password);
+  return wallet;
+};
+
+/**
+ * @description Creates a random (unencrypted) ethers.js wallet object
+ * @returns [Object] - Ethers.js wallet object
+ */
+export const createRandomWallet = async () => {
+  let wallet = await Wallet.createRandom();
+  return wallet;
+};
+
+/**
+ * @description Creates an (unencrypted) ethers.js wallet object
+ * @param privateKey [String]
+ * @returns [Object] - Ethers.js wallet object
+ */
+export const createWalletFromPrivateKey = privateKey => {
+  let wallet;
+  try {
+    wallet = new Wallet(privateKey);
+  } catch (e) {
+    console.log(e)
+  }
+  return { wallet };
+};
+
+export const getEncryptedWalletAddress = (encryptedWallet) => {
+  let json = JSON.parse(encryptedWallet)
+  let address = '0x' + json.address
+
+  return address
+}
+
+export const createWalletFromJSON = async (encryptedWallet, password) => {
+  let wallet;
+  try {
+    wallet = await Wallet.fromEncryptedJson(encryptedWallet, password);
+  } catch (e) {
+    console.log(e)
+  }
+  return { wallet, encryptedWallet };
+};
+
+export const createWalletFromMnemonic = async mnemonic => {
+  let wallet;
+  try {
+    wallet = await Wallet.fromMnemonic(mnemonic);
+  } catch (e) {
+    console.log(e)
+  }
+  return { wallet };
+};
+
+/**
+ * @description Creates an encrypted ethers.js wallet object and returns it
+ * along with it's address
+ * @param password [String]
+ * @returns [Object] - Ethers.js encrypted wallet and wallet address
+ */
+export const createAndEncryptWallet = async (password, callback) => {
+  let wallet = await Wallet.createRandom();
+  let address = wallet.address;
+  let encryptedWallet = await wallet.encrypt(password, callback);
+  return { address, encryptedWallet };
+};
+
+/**
+ * @description Decrypts an ethers.js wallet object and returns the plain decrypted object
+ * @param jsonWallet [Object]
+ * @param password
+ * @returns [Object] - Ethers.js wallet
+ */
+export const decryptWallet = async (jsonWallet, password) => {
+  let wallet = await Wallet.fromEncryptedWallet(jsonWallet, password);
+  return wallet;
+};
+
+export const saveWalletInSessionStorage = wallet => {
+  let address = wallet.address;
+  let privateKey = wallet.privateKey;
+  sessionStorage.setItem(address, privateKey);
+};
+
+export const getWalletFromSessionStorage = address => {
+  let privateKey = sessionStorage.getItem(address);
+  let wallet = new Wallet(privateKey);
+  return wallet;
+};
+
+export const savePrivateKeyInSessionStorage = async ({ address, password, encryptedWallet, privateKey }) => {
+  if (!privateKey) privateKey = await decryptWallet(encryptedWallet, password);
+  sessionStorage.setItem(address, privateKey);
+};
+
+export const getPrivateKeyFromSessionStorage = address => {
+  let key = sessionStorage.getItem(address);
+  return key;
+};
+
+export const saveEncryptedWalletInLocalStorage = (address, encryptedWallet) => {
+  localStorage.setItem(address, encryptedWallet);
+};
+
+export const getEncryptedWalletFromLocalStorage = address => {
+  let encryptedWallet = localStorage.getItem(address);
+  return encryptedWallet;
+};
+
+
+
+// WEBPACK FOOTER //
+// ./src/store/services/wallet.js
+
+/*
+trading front end - react
+
+*/
+
+// @flow
+import React from 'react'
+import OHLCV from '../../components/OHLCV'
+import OrdersTable from '../../components/OrdersTable'
+import OrderForm from '../../components/OrderForm'
+import TradesTable from '../../components/TradesTable'
+import TokenSearcher from '../../components/TokenSearcher'
+import OrderBook from '../../components/OrderBook'
+import { CloseableCallout, EmphasizedText } from '../../components/Common'
+import { Redirect } from 'react-router-dom'
+import { AutoSizer } from 'react-virtualized'
+import { SizesAsNumbers as Sizes } from '../../components/Common/Variables'
+
+import { Responsive } from 'react-grid-layout'
+
+const ResponsiveReactGridLayout = Responsive
+
+type Props = {
+  authenticated: boolean,
+  isConnected: boolean,
+  isInitiated: boolean,
+  balancesLoading: boolean,
+  baseTokenBalance: string,
+  quoteTokenBalance: string,
+  baseTokenAllowance: string,
+  quoteTokenAllowance: string,
+  baseTokenSymbol: string,
+  quoteTokenSymbol: string,
+  pairIsAllowed: boolean,
+  pairName: string,
+  queryTradingPageData: () => void,
+  makeFee: string,
+  takeFee: string,
+  toggleAllowances: (string, string) => void,
+}
+
+type State = {
+  calloutVisible: boolean,
+  calloutOptions: Object,
+  layouts: LayoutMap,
+  items: Array<string>,
+  collapsedItems: any,
+  currentBreakpoint: string,
+}
+
+type Layout = Array<Object>
+type LayoutMap = { [string]: Layout }
+
+const defaultSizes = {
+  'lg': {
+    'tokenSearcher': { x: 0, y: 0, w: 12, h: 30, minW: 12 },
+    'orderForm': { x: 0, y: 30, w: 12, h: 16, minH: 16, maxH: 16 },
+    'ohlcv': { x: 12, y: 0, w: 36, h: 28},
+    'ordersTable': { x: 12, y: 35, w: 23, h: 16 },
+    'orderBook': { x: 48, y: 0, w: 12, h: 28, minW: 10 },
+    'tradesTable': { x: 35, y: 35, w: 25, h: 16 },
+  },
+  'md': {
+    'tokenSearcher': { x: 0, y: 0, w: 18, h: 30, minW: 12 },
+    'orderForm': { x: 0, y: 30, w: 18, h: 16, minH: 18, maxH: 18 },
+    'ohlcv': { x: 18, y: 0, w: 42, h: 30 },
+    'ordersTable': { x: 18, y: 30, w: 42, h: 20 },
+    'orderBook': { x: 18, y: 50, w: 21, h: 30 },
+    'tradesTable': { x: 39, y: 50, w: 21, h: 30 },
+  },
+  'sm': {
+    'tokenSearcher': { x: 0, y: 0, w: 30, h: 16, minW: 12 },
+    'orderForm': { x: 30, y: 0, w: 30, h: 16, minH: 16, maxH: 16 },
+    'ohlcv': { x: 0, y: 16, w: 60, h: 30 },
+    'ordersTable': { x: 0, y: 106, w: 60, h: 20 },
+    'orderBook': { x: 0, y: 46, w: 30, h: 30 },
+    'tradesTable': { x: 30, y: 46, w: 30, h: 30 },
+  },
+  'xs': {
+    'tokenSearcher': { x: 0, y: 0, w: 60, h: 20, minW: 12 },
+    'orderForm': { x: 0, y: 40, w: 60, h: 16, minH: 16, maxH: 16 },
+    'ohlcv': { x: 0, y: 20, w: 60, h: 20 },
+    'ordersTable': { x: 0, y: 56, w: 60, h: 20 },
+    'orderBook': { x: 0, y: 76, w: 60, h: 30 },
+    'tradesTable': { x: 0, y: 96, w: 60, h: 30 },
+  },
+}
+
+const fullScreenOHLCVLayouts: LayoutMap = {
+  'lg': [ {i: 'ohlcv', x: 0, y: 0, w: 60, h: 60 } ],
+  'md': [ {i: 'ohlcv', x: 0, y: 0, w: 60, h: 60 } ],
+  'sm': [ {i: 'ohlcv', x: 0, y: 0, w: 60, h: 60 } ],
+  'xs': [ {i: 'ohlcv', x: 0, y: 0, w: 60, h: 60 } ],
+}
+
+const defaultLayouts = {
+  'lg': [
+    {i: 'tokenSearcher', x: 0, y: 0, w: 12, h: 28, minW: 12 },
+    {i: 'orderForm', x: 0, y: 35, w: 12, h: 16, minH: 16, maxH: 16 },
+    {i: 'ohlcv', x: 12, y: 0, w: 36, h: 28, minW: 10 },
+    {i: 'ordersTable', x: 12, y: 35, w: 23, h: 16, minW: 10 },
+    {i: 'orderBook', x: 48, y: 0, w: 12, h: 28, minW: 10 },
+    {i: 'tradesTable', x: 35, y: 35, w: 25, h: 16, minW: 10 },
+  ],
+  'md': [
+    {i: 'tokenSearcher', x: 0, y: 0, w: 18, h: 30, minW: 12 },
+    {i: 'orderForm', x: 0, y: 30, w: 18, h: 16, minH: 16, maxH: 16 },
+    {i: 'ohlcv', x: 18, y: 0, w: 42, h: 30, minW: 15 },
+    {i: 'ordersTable', x: 18, y: 30, w: 42, h: 20, minW: 15 },
+    {i: 'orderBook', x: 18, y: 50, w: 21, h: 30, minW: 15 },
+    {i: 'tradesTable', x: 39, y: 50, w: 21, h: 30, minW: 12 },
+  ],
+  'sm': [
+    {i: 'tokenSearcher', x: 0, y: 0, w: 30, h: 16, minW: 12 },
+    {i: 'orderForm', x: 30, y: 0, w: 30, h: 16, minH: 16, maxH: 16 },
+    {i: 'ohlcv', x: 0, y: 16, w: 60, h: 30 },
+    {i: 'ordersTable', x: 0, y: 106, w: 60, h: 20 },
+    {i: 'orderBook', x: 0, y: 46, w: 30, h: 30, minW: 20 },
+    {i: 'tradesTable', x: 30, y: 46, w: 30, h: 30 },
+  ],
+  'xs': [
+    {i: 'tokenSearcher', x: 0, y: 0, w: 60, h: 20, minW: 60, maxW: 60 },
+    {i: 'orderForm', x: 0, y: 40, w: 60, h: 16, minH: 16, maxH: 16, minW: 60, maxW: 60 },
+    {i: 'ohlcv', x: 0, y: 20, w: 60, h: 20, minW: 60, maxW: 60 },
+    {i: 'ordersTable', x: 0, y: 56, w: 60, h: 20, minW: 60, maxW: 60 },
+    {i: 'orderBook', x: 0, y: 76, w: 60, h: 20, minW: 60, maxW: 60 },
+    {i: 'tradesTable', x: 0, y: 96, w: 60, h: 20, minW: 60, maxW: 60 },
+  ]
+}
+
+class TradingPage extends React.PureComponent<Props, State> {
+
+  state = {
+    items: ['tokenSearcher', 'orderForm', 'ohlcv', 'ordersTable', 'orderBook', 'tradesTable'],
+    calloutVisible: false,
+    calloutOptions: {},
+    layouts: defaultLayouts,
+    currentBreakpoint: 'lg',
+    collapsedItems: {
+      'tokenSearcher': false,
+      'orderForm': false,
+      'ohlcv': false,
+      'ordersTable': false,
+      'orderBook': false,
+      'tradesTable': false
+    }
+  }
+
+  callouts = {
+    notAuthenticated: () => ({
+      title: 'Authenticated Required',
+      intent: 'danger',
+      message: 'Please authenticate to start trading'
+    }),
+    quoteTokensLocked: () => {
+      const { baseTokenSymbol, quoteTokenSymbol } = this.props
+
+    return {
+      title: `Unlock tokens to start trading`,
+      intent: 'danger',
+      message: (
+          <React.Fragment>
+            To start trading a currency pair, unlock trading for both tokens ({baseTokenSymbol} and {quoteTokenSymbol}).
+            Click <EmphasizedText onClick={() => this.props.toggleAllowances(baseTokenSymbol, quoteTokenSymbol)}>here</EmphasizedText> to unlock {baseTokenSymbol}/{quoteTokenSymbol}
+          </React.Fragment>
+        )
+      }
+    },
+    baseTokensLocked: () => {
+      const {
+        baseTokenSymbol,
+        quoteTokenSymbol,
+      } = this.props
+
+      return {
+        title: `Unlock tokens to start trading`,
+        intent: 'danger',
+        message: (
+          <React.Fragment>
+            To start trading a currency pair, unlock trading for both tokens ({baseTokenSymbol} and {quoteTokenSymbol}).
+            Click <EmphasizedText onClick={() => this.props.toggleAllowances(baseTokenSymbol, quoteTokenSymbol)}>here</EmphasizedText> to unlock {baseTokenSymbol}/{quoteTokenSymbol}
+          </React.Fragment>
+        )
+      }
+    },
+    tokensLocked: () => {
+      const { baseTokenSymbol, quoteTokenSymbol } = this.props
+
+      return {
+        title: `Unlock tokens to start trading`,
+        intent: `danger`,
+        message: (
+            <React.Fragment>
+              To start trading a currency pair, unlock trading for both tokens ({baseTokenSymbol} and {quoteTokenSymbol}).
+              Click <EmphasizedText onClick={() => this.props.toggleAllowances(baseTokenSymbol, quoteTokenSymbol)}>here</EmphasizedText> to unlock {baseTokenSymbol}/{quoteTokenSymbol}
+            </React.Fragment>
+          )
+        }
+      }
+    }
+
+  componentDidMount() {
+    if (this.props.isConnected) {
+      this.props.queryTradingPageData();
+    }
+
+    // this.checkIfCalloutRequired()
+  }
+
+  componentDidUpdate(prevProps: Props) {
+    if (prevProps.isConnected || !this.props.isConnected) {
+      return;
+    }
+
+    this.props.queryTradingPageData();
+  }
+
+  checkIfCalloutRequired = () => {
+    const {
+      authenticated,
+      baseTokenBalance,
+      quoteTokenBalance,
+      pairIsAllowed,
+     } = this.props
+
+    if (!authenticated) {
+      let calloutOptions = this.callouts.notAuthenticated()
+      this.setState({ calloutVisible: true, calloutOptions })
+    }
+
+    if (baseTokenBalance === '0.0' && quoteTokenBalance === '0.0') {
+      return
+    }
+
+    if (!pairIsAllowed) {
+      let calloutOptions = this.callouts.tokensLocked()
+      return this.setState({ calloutVisible: true, calloutOptions })
+    }
+  }
+
+  closeCallout = () => {
+    this.setState({ calloutVisible: false })
+  }
+
+  onCollapse = (item: string) => {
+    let { currentBreakpoint, layouts } = this.state
+    let newLayout = []
+    let currentLayout = layouts[currentBreakpoint]
+
+    currentLayout.forEach(elem => {
+      if (elem.i === item) {
+        this.state.collapsedItems[item]
+        ? newLayout.push({ ...elem, h: defaultSizes[currentBreakpoint][item].h })
+        : newLayout.push({ ...elem, h: 4 })
+      } else {
+        newLayout.push(elem)
+      }
+    })
+
+    let newLayouts = { ...this.state.layouts, [currentBreakpoint]: newLayout }
+    this.setState({ layouts: newLayouts, collapsedItems: {
+      ...this.state.collapsedItems,
+      [item]: !this.state.collapsedItems[item]
+      }
+    })
+  }
+
+  onFullScreenOHLCV = () => {
+    this.setState({ layouts: fullScreenOHLCVLayouts, items: ['ohlcv'] })
+  }
+
+  onLayoutChange = (currentLayout: Layout, layouts: LayoutMap) => {
+    this.setState({ layouts })
+  }
+
+  onBreakpointChange = (currentBreakpoint: string, newCols: number) => {
+    this.setState({ currentBreakpoint })
+  }
+
+  onResetDefaultLayout = () => {
+    this.setState({
+      layouts: defaultLayouts,
+      items: ['tokenSearcher', 'orderForm', 'ohlcv', 'ordersTable', 'orderBook', 'tradesTable'],
+      collapsedItems: {
+        'tokenSearcher': false,
+        'orderForm': false,
+        'ohlcv': false,
+        'ordersTable': false,
+        'orderBook': false,
+        'tradesTable': false
+      }
+    })
+  }
+
+  onExpand = (item: string) => {
+    let { currentBreakpoint, layouts } = this.state
+    let currentLayout = layouts[currentBreakpoint]
+
+    let currentItem = currentLayout.filter(elem => elem.i === item)[0]
+    let otherItems = currentLayout.filter(elem => elem.i !== item)
+    let { y: yc, h: hc, x: xc, w: wc } = currentItem
+
+    let newX = 0
+    let newXPlusW = 60 // number of columns
+    let newYPlusH = 100000
+
+    otherItems.forEach(elem => {
+      let { x, y, h, w, i } = elem
+
+      // check if items heights overlap
+      if ((yc < (y + h) && (yc + hc) >= (y + h)) || (yc <= y && (yc + hc) > y))
+      {
+        //left side collision detection
+        if ((x + w) <= xc) {
+          if ((x + w) > newX) newX = x + w
+        }
+
+        //probably x + w
+        //right side collision detection
+        if (x >= (xc + wc)) {
+          if (x < newXPlusW) newXPlusW = x
+        }
+      }
+
+      // check if items lengths overlap
+      if (((xc > x) && (xc <= (x + w))) || (((xc + wc) > x) && ((xc+wc) <= (x + w))))
+      {
+        //down side side collision detection
+        //we only expand vertically if the difference below is small
+        if ((yc + hc) <= y && (y < (yc + hc + 100))) {
+          if (y < newYPlusH) newYPlusH = y
+        }
+      }
+    })
+
+    //we didn't find a nearby element blocking vertically
+    if (newYPlusH === 100000) newYPlusH = yc + hc
+
+    let newLayout = []
+    currentLayout.forEach(elem => {
+      if (elem.i === item) {
+        newLayout.push({ ...elem, x: newX, w: newXPlusW - newX, h: newYPlusH - yc })
+      } else {
+        newLayout.push(elem)
+      }
+    })
+
+    let newLayouts = { ...this.state.layouts, [currentBreakpoint]: newLayout }
+    this.setState({ layouts: newLayouts })
+  }
+
+
+  renderItem =(item: string) => {
+    const { items } = this.state
+    const fullScreen = (items[0] === "ohlcv" && items.length === 1)
+
+
+    const renderedItems = {
+        tokenSearcher: (
+          <div key="tokenSearcher">
+            <TokenSearcher
+              onCollapse={this.onCollapse}
+              onExpand={this.onExpand}
+              onResetDefaultLayout={this.onResetDefaultLayout}
+            />
+          </div>
+        ),
+        orderForm: (
+          <div key="orderForm">
+              <OrderForm
+                onCollapse={this.onCollapse}
+                onExpand={this.onExpand}
+                onResetDefaultLayout={this.onResetDefaultLayout}
+              />
+          </div>
+        ),
+        ohlcv: (
+          <div key="ohlcv">
+            <OHLCV
+              onCollapse={this.onCollapse}
+              onExpand={this.onExpand}
+              onResetDefaultLayout={this.onResetDefaultLayout}
+              onFullScreen={this.onFullScreenOHLCV}
+              fullScreen={fullScreen}
+            />
+          </div>
+        ),
+        ordersTable: (
+          <div key="ordersTable">
+            <OrdersTable
+              onCollapse={this.onCollapse}
+              onExpand={this.onExpand}
+              onResetDefaultLayout={this.onResetDefaultLayout}
+            />
+          </div>
+        ),
+        orderBook: (
+          <div key="orderBook">
+            <OrderBook
+              onCollapse={this.onCollapse}
+              onExpand={this.onExpand}
+              onResetDefaultLayout={this.onResetDefaultLayout}
+            />
+          </div>
+        ),
+        tradesTable: (
+          <div key="tradesTable">
+            <TradesTable
+              onCollapse={this.onCollapse}
+              onExpand={this.onExpand}
+              onResetDefaultLayout={this.onResetDefaultLayout}
+            />
+          </div>
+        )
+      }
+
+    return renderedItems[item]
+  }
+
+  render() {
+    const { authenticated, isInitiated } = this.props
+    const { calloutOptions, calloutVisible, layouts, items } = this.state
+
+    // if (!authenticated) return <Redirect to="/login" />
+    // if (!isInitiated) return null;
+
+    return (
+      <AutoSizer style={{ width: '100%', height: '100%' }}>
+        {({ width, height }) => (
+          <ResponsiveReactGridLayout
+            width={width}
+            layouts={layouts}
+            breakpoints={{lg: Sizes.laptop, md: Sizes.tablet, sm: Sizes.mobileL, xs: Sizes.mobileM, xxs: Sizes.mobileS }}
+            cols={{lg:60, md: 60, sm: 60, xs: 60, xxs: 60 }}
+            onLayoutChange={(layout, layouts) => this.onLayoutChange(layout, layouts)}
+            onBreakpointChange={this.onBreakpointChange}
+            className="layout"
+            rowHeight={10}
+            compactType="vertical"
+            draggableHandle=".drag"
+          >
+            {items.map(item => this.renderItem(item))}
+          </ResponsiveReactGridLayout>
+        )}
+      </AutoSizer>
+    )
+  }
+}
+
+export default TradingPage
+
+
+// {/* <CloseableCallout
+//   visible={calloutVisible}
+//   handleClose={this.closeCallout}
+//   {...calloutOptions}
+// /> */}
+
+
+// WEBPACK FOOTER //
+// ./src/app/TradingPage/TradingPage.js

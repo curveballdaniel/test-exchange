@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>DTE - Distributed Token Exchange</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+
+    <!-- bootstrap -->
+
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.7/umd/popper.min.js" integrity="sha384-UO2eT0CpHqdSJQ6hJty5KVphtPhzWj9WO1clHTMGa3JDZwrnQq4sF86dIHNDz0W1" crossorigin="anonymous"></script>
+    <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/js/bootstrap.min.js" integrity="sha384-JjSmVgyd0p3pXB1rRibZUAYoIIy6OrQ6VrjIEaFf/nJGzIxFDsf4x0xIM+B07jRM" crossorigin="anonymous"></script>
+
+    <!-- main site CSS -->
+    <link rel="stylesheet" href="app.css">
+
+    <!-- main js-->
+    <script src="index.js"></script>
+
+    <!-- fontawesome -->
+    <script src="https://kit.fontawesome.com/b7cd29f18b.js" crossorigin="anonymous"></script>
+
+</head>
+
+<body>
+  <div class="container">
+
+    <h1>The 0xBitcoin Based Decentralized Exchange</h1>
+
+    <ul class="nav nav-tabs">
+      <li class="nav-item">
+        <a class="nav-link active" href="#my-account-tab" data-toggle="tab">
+          <i class="fas fa-home"></i>
+          My Account <span class="sr-only">(current)</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="#deposit-withdraw-tab" data-toggle="tab">
+          <i class="fas fa-wallet"></i>
+          Deposit/Withdraw <span class="sr-only">(current)</span>
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="#exchange-trade-tab" data-toggle="tab">
+          <i class="fas fa-street-view"></i>
+          Trade
+        </a>
+      </li>
+      <li class="nav-item">
+        <a class="nav-link" href="#exchange-info-tab" data-toggle="tab">
+          <i class="fas fa-info-circle"></i>
+          About
+        </a>
+      </li>
+    </ul>
+
+    <!-- all tabs -->
+    <div class="tab-content">
+      <!-- my account tab -->
+      <div class="tab-pane fade show active" id="my-account-tab">
+        <p>Welcome, <strong class="user-wallet-address">loading...</strong>!</p>
+
+        <h3>Account Balances</h3>
+        <table class="table table-striped table-hover">
+          <thead>
+            <tr>
+              <th scope="col">Coin Name</th>
+              <th scope="col">Ticker</th>
+              <th scope="col">Amount in Wallet</th>
+              <th scope="col">Amount in Exchange</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr>
+              <th scope="row">Ethereum</th>
+              <td>ETH</td>
+              <td><span class="user-wallet-eth-balance">loading... </span></td>
+              <td><span class="black"><span class="user-exchange-eth-balance">loading... </span></span></td>
+            </tr>
+            <tr>
+              <th scope="row">Exchange Coin (MetaCoin)</th>
+              <td>META</td>
+              <td><span class="user-wallet-token-balance">loading...</span></td>
+              <td><span class="black"><span class="user-exchange-token-balance">loading... </span></span></td>
+            </tr>
+          </tbody>
+        </table>
+
+        <p>You have <span class="black"><span id="balanceOrdersInExchange"></span> IN ORDERS</span> in the exchange</p>
+
+        <hr/>
+
+        <h1>Send MetaCoin</h1>
+
+        <label for="amount">Amount:</label>
+        <input type="text" id="amount" placeholder="e.g. 10"/>
+
+        <label for="receiver">To address:</label>
+        <input
+          type="text"
+          id="receiver"
+          placeholder="e.g. 0x93e66d9baea28c17d9fc393b53e3fbdd76899dae"
+        />
+
+        <button onclick="App.refreshBalance()">Refresh MetaCoin Balance</button>
+
+        <button onclick="App.sendCoin()">Send MetaCoin</button>
+
+        <p>Status: <p id="status"></p></p>
+
+      </div>
+      <!-- END my account tab -->
+
+      <!-- deposit/withdraw tab -->
+      <div class="tab-pane fade" id="deposit-withdraw-tab">
+        <div class="container">
+          <div class="row">
+            <div class="col-lg-12">
+              <div class="card text-center">
+                <div class="card-header">
+                  <ul class="nav nav-pills card-header-pills">
+                    <li class="nav-item">
+                      <a class="nav-link active" href="#deposit-tokens-sub-tab" data-toggle="tab">Deposit</a>
+                    </li>
+                    <li class="nav-item">
+                      <a class="nav-link" href="#withdraw-tokens-sub-tab" data-toggle="tab">Withdraw</a>
+                    </li>
+                  </ul>
+                </div>
+                <div class="card-body">
+                  <!-- sub-withdraw/deposit tabs -->
+                  <div class="tab-content">
+                    <!-- deposit tab -->
+                    <div class="tab-pane fade show active" id="deposit-tokens-sub-tab">
+                      <div class="row">
+                        <div class="col-lg-6">
+                          <div class="card border-primary mb-3">
+                                <div class="card-header">
+                                    <h3 class="card-title">Deposit Token</h3>
+                                </div>
+                                <div class="card-body text-primary">
+                                  <h5 style="color: black;">Wallet Token Balance: <span class="user-wallet-token-balance">loading...</span></h5>
+                                  <form>
+                                      <div class="form-group">
+                                          <label for="inputNameDepositToken">Symbol Name</label>
+                                          <input type="text" name="inputNameDepositToken" class="form-control"
+                                                 id="inputNameDepositToken" placeholder="e.g. META">
+                                      </div>
+                                      <div class="form-group">
+                                          <label for="inputAmountDepositToken">Amount in Token</label>
+                                          <input type="number" name="inputAmountDepositToken" class="form-control"
+                                                 id="inputAmountDepositToken" placeholder="e.g., 10">
+                                      </div>
+                                  </form>
+                                </div>
+                                <div class="panel-footer">
+                                  <button type="button" class="btn btn-default btn-success" onclick="App.approveTokenDeposit();return false;">Approve Exchange Use of Token
+                                  </button> 
+                                  <span>
+                                    <i class="far fa-question-circle exchange-approval-help">
+                                      <span class="exchange-approval-help-text">In order for the exchange to store your funds, you need to personally allow the exchange to hold your tokens. This is standard for any decentralized application using a token - feel free to check the source code and exchange contract linked in the 'About' section.</span>
+                                    </i>
+                                  </span>
+                                </div>
+                                <div class="panel-footer"><button type="button" class="btn btn-default btn-danger" onclick="App.depositToken();return false;">Deposit Token
+                                </button></div>
+                                <br/>
+                            </div>
+                        </div>
+
+                        <div class="col-lg-6">
+                            <div class="card border-primary mb-3">
+                                <div class="card-header">
+                                    <h3 class="card-title">Deposit Ether</h3>
+                                </div>
+                                <div class="card-body text-primary">
+                                  <h5 style="color: black;">Wallet ETH Balance: <span class="user-wallet-eth-balance">loading...</span></h5>
+                                    <form>
+                                        <div class="form-group">
+                                            <label for="inputAmountDepositEther">Amount in Ether</label>
+                                            <input type="number" name="inputAmountDepositEther" class="form-control"
+                                                   id="inputAmountDepositEther" placeholder="e.g., 0.001">
+                                        </div>
+                                    </form>
+                                </div>
+                                <div class="panel-footer"><button type="button" class="btn btn-default btn-danger" onclick="App.depositEther();return false;">Deposit
+                                    Ether
+                                </button></div>
+                                <br/>
+                            </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- withdraw tab -->
+                    <div class="tab-pane fade" id="withdraw-tokens-sub-tab">
+                      <div class="row">
+                        <div class="col-lg-6">
+                            <div class="card border-primary mb-3">
+                                <div class="card-header">
+                                    <h3 class="card-title">Withdraw Token</h3>
+                                </div>
+                                <div class="card-body text-primary">
+                                    <form>
+                                      <h5 style="color: black;">Exchange Token Balance: <span class="user-exchange-token-balance">loading... </span></h5>
+                                        <div class="form-group">
+                                            <label for="inputNameWithdrawalToken">Symbol Name</label>
+                                            <input type="text" name="inputNameWithdrawalToken" class="form-control"
+                                                   id="inputNameWithdrawalToken" placeholder="e.g. META">
+                                        </div>
+                                        <div class="form-group">
+                                            <label for="inputAmountWithdrawalToken">Amount in Token</label>
+                                            <input type="number" name="inputAmountWithdrawalToken" class="form-control"
+                                                   id="inputAmountWithdrawalToken" placeholder="e.g., 95">
+                                        </div>
+
+                                    </form>
+                                </div>
+                                <div class="panel-footer">
+                                    <button type="button" class="btn btn-default btn-success" onclick="App.withdrawToken();return false;">
+                                        Withdraw Token
+                                    </button>
+                                </div>
+                                <br/>
+                            </div>
+                        </div>
+                        <div class="col-lg-6">
+                            <div class="card border-primary mb-3">
+                                <div class="card-header">
+                                    <h3 class="card-title">Withdraw Ether</h3>
+                                </div>
+                                <div class="card-body text-primary">
+                                    <form>
+                                      <h5 style="color: black;">Exchange ETH Balance: <span class="user-exchange-eth-balance">loading... </span></h5>
+                                        <div class="form-group">
+                                            <label for="inputAmountWithdrawalEther">Amount in Token</label>
+                                            <input type="number" name="inputAmountWithdrawalEther" class="form-control"
+                                                   id="inputAmountWithdrawalEther" placeholder="e.g., 0.001">
+                                        </div>
+
+                                    </form>
+                                </div>
+                                <div class="panel-footer">
+                                    <button type="button" class="btn btn-default btn-success" onclick="App.withdrawEther();return false;">
+                                        Withdraw Ether
+                                    </button>
+                                </div>
+                                <br/>
+                            </div>
+                        </div>
+                      </div>
+                    </div>
+                    <!-- end of all tabs -->
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- END deposit/withdraw tab -->
+
+      <!-- trade tab -->
+      <div class="tab-pane fade" id="exchange-trade-tab">
+        <div class="container">
+          <h1>Trade: </h1>
+          <hr/>
+          
+          <div class="row">
+            
+
+            <div class="col-lg-6">
+              <div class="panel panel-default panel-success">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Buy Token</h3>
+                </div>
+                <div class="panel-body">
+
+                    <form>
+                        <div class="form-group">
+                            <label for="inputNameBuyToken">Symbol Name</label>
+                            <input type="text" name="inputNameBuyToken" class="form-control"
+                                   id="inputNameBuyToken" placeholder="e.g. META">
+                        </div>
+                        <div class="form-group">
+                            <label for="inputAmountBuyToken">Amount of Token</label>
+                            <input type="number" name="inputAmountBuyToken" class="form-control"
+                                   id="inputAmountBuyToken" placeholder="e.g., 95">
+                        </div>
+                        <div class="form-group">
+                            <label for="inputPriceBuyToken">Price in ETH/per
+                              <span>
+                                <i class="far fa-question-circle exchange-approval-help">
+                                  <span class="exchange-approval-help-text">No orders totaling over 999 ETH</span>
+                                </i>
+                              </span>
+                            </label>
+                            <input type="number" name="inputPriceBuyToken" class="form-control"
+                                   id="inputPriceBuyToken" placeholder="e.g., 0.001">
+                        </div>
+                    </form>
+                </div>
+                <div class="panel-footer">
+                  <h6 class="black-text">Order Total: X</h6>
+                  <h6>Pre-Trade ETH Balance: <span class="user-exchange-eth-balance">loading... </span></h6>
+                  <h6>Post-Trade ETH Balance: <span class="user-exchange-eth-balance">loading... </span></h6>
+
+                  <button type="button" class="btn btn-default btn-block btn-success"
+                          onclick="App.placeTokenBuyOrder();return false;">Buy
+                      Token
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-lg-6">
+              <div class="panel panel-default panel-danger">
+                <div class="panel-heading">
+                    <h3 class="panel-title">Sell Token</h3>
+                </div>
+                <div class="panel-body">
+                    <form>
+                        <div class="form-group">
+                            <label for="inputNameSellToken">Symbol Name</label>
+                            <input type="text" name="inputNameSellToken" class="form-control"
+                                   id="inputNameSellToken" placeholder="e.g. META">
+                        </div>
+                        <div class="form-group">
+                            <label for="inputAmountSellToken">Amount of Token (Available Balance: <span class="user-exchange-token-balance">loading... </span>)</label>
+                            <input type="number" name="inputAmountSellToken" class="form-control"
+                                   id="inputAmountSellToken" placeholder="e.g., 95">
+                        </div>
+                        <div class="form-group">
+                            <label for="inputPriceSellToken">Price in ETH/per
+                              <span>
+                                <i class="far fa-question-circle exchange-approval-help">
+                                  <span class="exchange-approval-help-text">No orders totaling over 999 ETH</span>
+                                </i>
+                              </span>
+                            </label>
+                            <input type="number" name="inputPriceSellToken" class="form-control"
+                                   id="inputPriceSellToken" placeholder="e.g., 0.001">
+                        </div>
+
+                    </form>
+                </div>
+                <div class="panel-footer">
+                  <h6 class="black-text">Order Total: X</h6>
+                  <h6 class="black-text">Pre-trade Token Balance: <span class="user-exchange-token-balance">loading... </span></h6>
+                  <h6 class="black-text">Post-trade Token Balance: <span class="user-exchange-token-balance">loading... </span></h6>
+                  
+                  <button type="button" class="btn btn-default btn-block btn-danger"
+                          onclick="App.placeTokenSellOrder();return false;">Sell
+                      Token
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <br/>
+
+        <!-- orderbooks -->
+        <div class="container">
+          <div class="row">
+            <div class="col-lg-6">
+              <div class="card border-danger mb-3">
+                <div class="card-header">
+                  <h3 class="card-title" id="sellTokenName">Sell Orders</h3>
+                </div>
+                <div class="card-body text-danger">
+                  <div class="card-text" id="sellOrderBook"></div>
+                </div>
+              </div>
+            </div>
+
+            <div class="col-lg-6">
+              <div class="card border-success mb-3">
+                <div class="card-header">
+                  <h3 class="card-title" id="buyTokenName">Buy Orders</h3>
+                </div>
+                <div class="card-body text-success">
+                  <div class="card-text" id="buyOrderBook"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="userOrders">
+            <hr/>
+
+            <h1>User Open Orders</h1>
+            <div id="userOpenOrders">
+
+            </div>
+            <hr/>
+
+            <h1>User Fulfilled Orders</h1>
+            <div id="userFulfilledOrders">
+
+            </div>
+            <hr/>
+          </div>
+        </div>
+
+        
+      </div>
+      <!-- END trade tab -->
+
+      <div class="tab-pane fade" id="exchange-info-tab">
+        Info here
+      </div>
+    </div>
+    <!-- end of all tabs -->
+
+  </div>
+</body>
+
+  <script type="text/javascript">
+
+      window.addEventListener('load', function () {
+          //App.initExchange();
+      });
+  </script>
+
+  </body>
+</html>
